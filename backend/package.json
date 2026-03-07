@@ -1,0 +1,13 @@
+{
+  "name": "revauto",
+  "version": "1.0.0",
+  "description": "Revenue Operations Autopilot - Full B2B SaaS automation lifecycle: from Lead Research to Delivery to Knowledge Retrieval.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.7.0"
+}
