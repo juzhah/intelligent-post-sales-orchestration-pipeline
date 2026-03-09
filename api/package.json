@@ -1,0 +1,22 @@
+{
+  "name": "revauto-api",
+  "version": "1.0.0",
+  "description": "Revenue Operations Autopilot - Full B2B SaaS automation lifecycle: from Lead Research to Delivery to Knowledge Retrieval.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "cheerio": "^1.0.0",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "pdfkit": "^0.15.1",
+    "revauto-api": "link:"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.7.0"
+}
