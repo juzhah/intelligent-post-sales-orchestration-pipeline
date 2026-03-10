@@ -1,0 +1,25 @@
+meta {
+  name: scrape
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:3030/api/scrape
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {"domain": "https://estebanloz.dev/"}
+  
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
