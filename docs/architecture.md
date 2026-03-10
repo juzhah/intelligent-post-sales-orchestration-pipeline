@@ -89,9 +89,9 @@ The instant a deal is marked "Closed Won" in HubSpot, RevAuto automatically:
 ```
 ┌─────────────┐     webhook      ┌─────────────┐     HTTP POST      ┌─────────────────┐
 │             │  ──────────────► │             │  ────────────────► │                 │
-│   HubSpot   │   deal.won       │     N8N     │   /api/scrape      │  Express.js API  │
-│    (CRM)    │                  │ Orchestrator │ ◄────────────────  │  (Scraper + PDF) │
-│             │                  │             │   structured JSON   │                 │
+│   HubSpot   │   deal.won       │     N8N     │   /api/scrape      │  Express.js API │
+│    (CRM)    │                  │ Orchestrator │ ◄──────────────── │  (Scraper + PDF)│
+│             │                  │             │   structured JSON  │                 │
 └─────────────┘                  │             │                    └────────┬────────┘
                                  │             │                             │
                                  │             │     /api/generate-pdf       │
@@ -105,10 +105,10 @@ The instant a deal is marked "Closed Won" in HubSpot, RevAuto automatically:
                                  │             │  matched chunks    │                 │
                                  │             │                    └─────────────────┘
                                  │             │
-                                 │             │   prompt + context  ┌─────────────────┐
+                                 │             │   prompt + context ┌─────────────────┐
                                  │             │ ──────────────────►│                 │
-                                 │             │ ◄──────────────────│  Claude 3.5     │
-                                 │             │   structured JSON   │  Sonnet (AI)    │
+                                 │             │ ◄──────────────────│  chatmini       │
+                                 │             │   structured JSON  │        (AI)     │
                                  │             │                    └─────────────────┘
                                  │             │
                                  │             │   create folder +   ┌─────────────────┐
@@ -893,12 +893,14 @@ revauto/
 │   │       └── rateLimiter.js    # Express rate limiting
 │   ├── package.json
 │   └── Dockerfile
+├── docs/
+    ├──architecture.md
 ├── knowledge-base/
 │   └── global-onboarding-standards.pdf
 ├── docker-compose.yml
 ├── .env
 ├── .gitignore
-├── ARCHITECTURE.md
+├── CLAUDE.md
 └── README.md
 ```
 

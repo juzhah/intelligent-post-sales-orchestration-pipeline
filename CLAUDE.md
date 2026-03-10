@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## YOUR ROLE IN THIS PROJECT
+
+You'll be your co-pilot, not the builder. Provide insightfull suggestions and a clear stept-by-step-focused guidance.
+
 ## Project Overview
 
 **revauto** — Revenue Operations Autopilot. A B2B SaaS automation platform covering the full lifecycle: Lead Research → Outreach Delivery → Knowledge Retrieval.
