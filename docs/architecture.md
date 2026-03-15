@@ -173,7 +173,9 @@ N8N is the only component that communicates with every other service. It receive
 
 ### 4.3 Express.js API — Compute Layer
 
-Express handles the two tasks that are better suited to dedicated backend code than N8N Code nodes: website scraping (with proper error handling, retries, HTML parsing via Cheerio) and PDF document generation (with full layout control via PDFKit or similar).
+Express handles the two tasks that are better suited to dedicated backend code than N8N Code nodes: website scraping (via Cloudflare Browser Rendering Crawl API) and PDF document generation (with full layout control via PDFKit or similar).
+
+**Scraping delegate — Cloudflare Browser Rendering:** Instead of running Axios + Cheerio in-process, the scraper submits an async crawl job to Cloudflare's Browser Rendering API and polls until it completes. Cloudflare executes the crawl in a real Chromium browser, bypassing bot-detection and JavaScript-rendered pages. The API returns structured JSON extracted by an LLM prompt embedded in the job — no keyword pattern matching required.
 
 **Two endpoints, one service, zero AI calls.** Claude is called via N8N's native Anthropic node. Pinecone is queried via N8N's native vector store node. Express does compute; N8N does orchestration and AI.
 
@@ -287,8 +289,8 @@ Step 12 │ N8N Slack node posts Block Kit message
 
 - Type: HTTP Request
 - Method: POST
-- URL: `http://nexus-api:3000/api/scrape`
-- Body: `{ "domain": "{{ $json.companyDomain }}" }`
+- URL: `http://nexus-api:3000/api/scraper`
+- Body: `{ "url": "{{ $json.companyDomain }}" }`
 - Output: structured scraping result (industry, size, services, techStack, summary)
 
 **Node 3: Pinecone Vector Store — Retrieve Standards**
@@ -394,43 +396,50 @@ Step 12 │ N8N Slack node posts Block Kit message
 
 ## 7. Express.js API — Endpoints
 
-### `POST /api/scrape`
+### `POST /api/scraper`
 
-Accepts a domain, scrapes the client's website, returns structured context.
+Accepts a URL, delegates scraping to the Cloudflare Browser Rendering Crawl API, and returns AI-extracted structured context.
 
 **Request:**
 
 ```json
-{ "domain": "acmetech.com" }
+{ "url": "acmetech.com" }
 ```
 
 **Process:**
 
-1. Normalizes domain (prepends `https://` if missing)
-2. Fetches 5 pages: `/`, `/about`, `/services`, `/solutions`, `/team`
-3. Uses Axios with 15-second timeout and realistic User-Agent header
-4. Parses each page with Cheerio: extracts title, meta description, h1, body text (capped at 3000 chars/page)
-5. Detects industry via keyword pattern matching against extracted text
-6. Detects company size from contextual phrases
-7. Extracts key services from recurring headings (h2, h3)
-8. Detects tech stack from HTML source (meta generators, framework signatures, script tags)
+1. Normalizes URL (prepends `https://` if missing, resolves to origin).
+2. Submits a crawl job to `POST /accounts/{id}/browser-rendering/crawl` with:
+   - `render: false` (static crawl, no full JS execution needed for content extraction)
+   - `limit: 10` pages (Cloudflare handles page discovery automatically)
+   - `formats: ["json"]` with an embedded LLM prompt and strict JSON schema
+3. Cloudflare executes the crawl in a headless Chromium browser — bypasses bot-detection and handles JavaScript-rendered content.
+4. Express polls `GET /browser-rendering/crawl/{jobId}` every 5 seconds (max 60 attempts / 5 minutes) until status exits `"running"`.
+5. Cloudflare's LLM extracts structured fields directly from page content — no keyword pattern matching.
+
+**LLM extraction prompt (embedded in job):**
+
+> "You are analyzing a B2B company website to support an onboarding briefing. Extract the company's industry vertical, company size indicators (headcount ranges, growth stage, or market tier), key products or services offered, and any detectable tech stack. Return only what is explicitly present — do not fabricate."
 
 **Response:**
 
 ```json
 {
-  "domain": "acmetech.com",
-  "pagesScraped": 5,
-  "industry": "Technology / SaaS",
-  "companySizeIndicator": "Mid-Market (100-999)",
-  "keyServices": ["API Platform", "Cloud Solutions"],
-  "techStack": ["Next.js", "React", "Node.js"],
-  "summary": "Industry: Technology / SaaS. Company size: Mid-Market. Key offerings: API Platform, Cloud Solutions. Tech stack: Next.js, React, Node.js. 5 pages analyzed.",
-  "scrapedAt": "2026-03-06T14:30:00Z"
+  "status": 200,
+  "data": {
+    "industry": "Technology / SaaS",
+    "companySizeIndicator": "Mid-Market (100-999)",
+    "keyServices": ["API Platform", "Cloud Solutions"],
+    "techStack": ["Next.js", "React", "Node.js"],
+    "summary": "B2B cloud infrastructure company serving mid-market SaaS teams."
+  }
 }
 ```
 
-**Error handling:** If a page returns 4xx/5xx or times out, the scraper skips it and continues. If all pages fail, returns a response with `pagesScraped: 0` and `summary: "Website unreachable — no data extracted"`. The pipeline continues but this sparse data will lower Claude's confidence score, triggering the human review route.
+**Error handling:** Two distinct error codes surface through centralized middleware:
+- `4000` (`CF_FAILED_CREATE_JOB`) — Cloudflare rejected the crawl job creation (auth failure, invalid URL, quota exceeded). Returns HTTP 422.
+- `5000` (`CF_FAILED_SCRAPING`) — The crawl job completed but Cloudflare returned a failure status. Returns HTTP 422.
+- Timeout: if the job does not exit `"running"` within 5 minutes, Express throws and the pipeline escalates to human review via the confidence scoring mechanism.
 
 ### `POST /api/generate-pdf`
 
@@ -866,12 +875,14 @@ CMD ["node", "src/index.js"]
 
 ## 14. Environment Variables
 
-| Variable            | Format       | Where Used            |
-| ------------------- | ------------ | --------------------- |
-| `ANTHROPIC_API_KEY` | `sk-ant-...` | N8N → Claude node     |
-| `PINECONE_API_KEY`  | `pcsk_...`   | N8N → Pinecone node   |
-| `SLACK_BOT_TOKEN`   | `xoxb-...`   | N8N → Slack node      |
-| `HUBSPOT_API_KEY`   | `pat-...`    | N8N → HubSpot trigger |
+| Variable               | Format       | Where Used                              |
+| ---------------------- | ------------ | --------------------------------------- |
+| `ANTHROPIC_API_KEY`    | `sk-ant-...` | N8N → Claude node                       |
+| `PINECONE_API_KEY`     | `pcsk_...`   | N8N → Pinecone node                     |
+| `SLACK_BOT_TOKEN`      | `xoxb-...`   | N8N → Slack node                        |
+| `HUBSPOT_API_KEY`      | `pat-...`    | N8N → HubSpot trigger                   |
+| `CF_SCRAPER_API_TOKEN` | `Bearer ...` | Express API → Cloudflare Browser Rendering |
+| `CF_ACCOUNT_ID`        | string       | Express API → Cloudflare account routing   |
 
 Google Drive credentials are configured directly in N8N's credential manager via OAuth2 flow — they are not stored in the `.env` file.
 
@@ -883,14 +894,21 @@ Google Drive credentials are configured directly in N8N's credential manager via
 revauto/
 ├── api/
 │   ├── src/
-│   │   ├── index.js              # Express server entry point
+│   │   ├── index.js                    # Express server entry point
+│   │   ├── constants/
+│   │   │   └── errorCodes.js           # CF error code constants
+│   │   ├── customErrors/
+│   │   │   └── CFError.js              # Cloudflare-specific Error class
 │   │   ├── routes/
-│   │   │   └── scrape.js         # POST /api/scrape
+│   │   │   └── cfscraper.js            # POST /api/scraper
 │   │   ├── services/
-│   │   │   ├── scraper.js        # Axios + Cheerio scraping logic
-│   │   │   └── pdfGenerator.js   # PDF creation with PDFKit
-│   │   └── middleware/
-│   │       └── rateLimiter.js    # Express rate limiting
+│   │   │   ├── cfScraperService.js     # Cloudflare Crawl job + polling logic
+│   │   │   └── pdfGenerator.js         # PDF creation with PDFKit
+│   │   ├── middleware/
+│   │   │   └── errorHandling.js        # Centralized error middleware
+│   │   └── utils/
+│   │       ├── config.js               # Env var exports
+│   │       └── utils.js                # urlNormalizer helper
 │   ├── package.json
 │   └── Dockerfile
 ├── docs/
@@ -939,7 +957,7 @@ revauto/
 
 ### Current Limitations
 
-**Scraper uses keyword pattern matching.** The Express scraper detects industry, company size, and tech stack using hardcoded keyword lists. A company describing itself as "distributed systems platform" instead of "microservices" gets miscategorized. In production, replace the pattern matching with a Claude API call inside the scraper — cost is ~$0.02 per scrape, robustness improvement is significant.
+**Scraper relies on Cloudflare Browser Rendering (external SaaS).** The previous Axios + Cheerio keyword-pattern scraper has been replaced with the Cloudflare Browser Rendering Crawl API. Extraction quality is significantly better — LLM-powered, browser-rendered, no pattern matching — but introduces an external dependency, API cost, and async polling latency (~15–60s per job). Monitor Cloudflare quota and add fallback handling for job timeouts in production.
 
 **No data persistence.** Scraped data and Claude's analysis flow through the pipeline but are not stored permanently. In production, add a PostgreSQL database to store structured client data for future reference and analytics.
 
@@ -951,7 +969,7 @@ revauto/
 
 | Priority | Enhancement                                             | Impact                                          |
 | -------- | ------------------------------------------------------- | ----------------------------------------------- |
-| P0       | Replace keyword scraper with Claude-powered extraction  | Dramatically better industry/size detection     |
+| P0       | Add fallback for Cloudflare crawl timeouts and quota limits | Resilience when external scraper is unavailable |
 | P1       | Add PostgreSQL for client data persistence              | Historical analysis, reporting, trend detection |
 | P1       | Multi-document RAG (contracts, playbooks, case studies) | Richer, more specific AI analysis               |
 | P2       | Birdview PSA integration (create project automatically) | Full Sales → Delivery automation                |

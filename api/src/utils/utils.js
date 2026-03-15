@@ -15,7 +15,7 @@ function urlNormalizer(domain) {
 
 const TEXT_CAP = 99999999999999999;
 async function fetchPage(domain) {
-  console.log(domain);
+  /* HTTP REQUEST TO AN URL */
   const response = await axios.get(domain, { timeout: 8000 });
   const $ = cheerio.load(response.data);
 

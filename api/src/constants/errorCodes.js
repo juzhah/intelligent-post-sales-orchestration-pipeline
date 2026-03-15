@@ -1,0 +1,2 @@
+exports.CF_FAILED_CREATE_JOB = 4000;
+exports.CF_FAILED_SCRAPING = 5000;
