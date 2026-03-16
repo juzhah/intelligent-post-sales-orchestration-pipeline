@@ -141,4 +141,10 @@ dist
 # SvelteKit build / generate output
 .svelte-kit
 
+# n8n docker 
+
+/n8n-data
+
+
 # End of https://www.toptal.com/developers/gitignore/api/node
+

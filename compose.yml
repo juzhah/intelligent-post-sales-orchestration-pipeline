@@ -1,0 +1,22 @@
+services:
+  express-api:
+    build: ./api
+    container_name: express-api
+    ports:
+      - "9000:3030"
+    restart: always
+    environment:
+      - CF_ACCOUNT_ID=${CF_ACCOUNT_ID}
+      - CF_SCRAPER_API_TOKEN=${CF_SCRAPER_API_TOKEN}
+
+  n8n:
+    depends_on:
+      - express-api
+    image: n8nio/n8n:stable
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_OPENAI_API_KEY=${N8N_OPENAI_API_KEY}
+      - N8N_HUBSPACE_API_TOKEN=${HUBSPACE_API_TOKEN}
+    volumes:
+      - ./n8n-data:/home/node/.n8n
