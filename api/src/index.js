@@ -1,5 +1,5 @@
 require("dotenv").config();
-
+const { port } = require("./utils/config");
 /* TODO:  Crear GENERATE PDF endpoint */
 /* TODO:  Crear sistema de logging */
 /* TODO:  Crear rate limiter */
@@ -10,7 +10,6 @@ const cfScrapperService = require("./routes/cfscraper");
 const errorHandling = require("./middleware/errorHandling");
 
 const app = express();
-const PORT = 3030;
 
 app.use(express.json());
 
@@ -22,4 +21,4 @@ app.use("/api", cfScrapperService);
 
 app.use(errorHandling);
 
-app.listen(PORT, () => console.log(`API running on ${PORT}`));
+app.listen(port, () => console.log(`API running on ${port}`));
