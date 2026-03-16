@@ -1,0 +1,15 @@
+meta {
+  name: n8n webhook
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://localhost:5678/webhook-test/4972cd1d-5961-4d73-8ce8-427ef6509f93
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}
