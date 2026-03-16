@@ -106,7 +106,6 @@ async function waitForCrawl(jobId) {
     const status = data.result.status;
 
     if (status !== "running") {
-      console.log(data);
       return data;
     }
 
