@@ -1,0 +1,183 @@
+meta {
+  name: generate pdf
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://localhost:3030/api/gen-pdf
+  body: json
+  auth: inherit
+}
+
+params:query {
+  ~: 
+}
+
+body:json {
+  {
+  "output": {
+    "confidenceScore": 0.6,
+    "riskAudit": {
+      "overallRiskLevel": "Medium",
+      "risks": [
+        {
+          "category": "Technical",
+          "severity": "High",
+          "description": "Unclear integration scope with client tech stack (QuickBooks, Jira, Salesforce, HubSpot, Outlook). Unknown which integrations are required for NF-BI dashboard and what data mappings are needed. Integration failures could block go-live.",
+          "mitigation": "Within 5 business days run an Integration Inventory call to document required integrations and data owners. Prioritize integrations by criticality for NF-BI. Schedule test syncs for each prioritized integration and assign 24-hour SLA for escalation to Infrastructure team for unresolved sync errors.",
+          "owner": "Infrastructure Team + Delivery Coordinator"
+        },
+        {
+          "category": "Process",
+          "severity": "Medium",
+          "description": "No signed Delivery Acceptance Document (DAD) or locked pipeline stage definitions provided. Internal Go-Live criteria (DAD, pipeline lock, sample data validation) cannot be validated yet.",
+          "mitigation": "Facilitate a 1-hour scoping/acceptance workshop within 7 days to produce a DAD draft and final pipeline stage document. Require client sign-off on pipeline stage definitions and DAD prior to final configuration activities.",
+          "owner": "Project Manager (PM) + Delivery Coordinator"
+        },
+        {
+          "category": "Communication",
+          "severity": "High",
+          "description": "Primary contact is missing; no client-side admin or sponsor identified. This blocks scheduling, validation, and sign-offs and increases risk of delays.",
+          "mitigation": "Request named primary and secondary contacts and an executive sponsor from Sales within 48 hours. If not provided, escalate to Sales leadership. Book a Kickoff meeting only after contacts confirmed.",
+          "owner": "Sales (initial) / Delivery Coordinator (ongoing)"
+        },
+        {
+          "category": "Scope",
+          "severity": "High",
+          "description": "Scope for NF-BI deliverables (custom reports, project taxonomy, billing rate cards, number of templates) is undefined. Risk of scope creep and misaligned expectations.",
+          "mitigation": "Run a rapid scope-definition session (max 2 business days) with client admins and internal PM to capture: list of required reports, project taxonomy, billing rate cards, target user counts. Produce a scoped change-controlled SOW addendum or DAD within 5 days.",
+          "owner": "PM + Delivery Coordinator"
+        },
+        {
+          "category": "Resource",
+          "severity": "Medium",
+          "description": "Deal size ($78,000) exceeds threshold that requires PM involvement, but internal resource allocation (PM, training lead, infra support) is not confirmed. Risk of under-resourcing and missed training hours.",
+          "mitigation": "Immediately allocate and confirm a named PM, Delivery Coordinator, and Training Lead. Reserve required training slots per NF-BI standards (Admin: 4h, PM: 3h, End-user: 1h) and confirm client availability within 7 days.",
+          "owner": "Delivery Operations Manager"
+        }
+      ],
+      "summary": "Moderate overall delivery risk driven primarily by missing client contacts, undefined scope for NF-BI deliverables, and unclear integration requirements. Recommended immediate actions: obtain client contacts, run a scoping workshop to produce a signed DAD and pipeline definitions, inventory and prioritize integrations, and assign named delivery resources (PM, Delivery Coordinator, Training Lead). These actions are actionable within the next 30 days."
+    },
+    "deliveryStrategy": {
+      "phases": [
+        {
+          "name": "Phase 1 — Kickoff & Rapid Discovery",
+          "days": "0-5",
+          "objectives": [
+            "Identify and confirm client primary and secondary contacts and executive sponsor.",
+            "Lock basic scope for NF-BI deliverables and required integrations.",
+            "Produce DAD draft and pipeline stage definitions."
+          ],
+          "keyActions": [
+            "Sales to provide client contact details within 48 hours; if missing, escalate to Sales leadership.",
+            "Schedule 60–90 minute Kickoff + Scoping workshop with client admins, PM, and Delivery Coordinator.",
+            "Use internal NF-BI checklist to capture required reports, project taxonomy, billing rate cards, and target user counts.",
+            "Decide which integrations (from tech stack) are in-scope for initial 30-day delivery."
+          ],
+          "deliverables": [
+            "Confirmed client primary/secondary contacts and sponsor",
+            "Signed DAD draft or documented timeline to signature",
+            "Locked pipeline stage definitions",
+            "Integration Inventory document (prioritized)"
+          ],
+          "riskCheckpoint": "If contacts or DAD not provided by Day 5 => escalate to Sales for immediate resolution; pause configuration until contact/DAD confirmed."
+        },
+        {
+          "name": "Phase 2 — Configuration & Integration Setup",
+          "days": "6-15",
+          "objectives": [
+            "Configure NF-BI baseline dashboard and project templates per scoped taxonomy.",
+            "Begin integration connectors and initial data syncs for prioritized systems.",
+            "Prepare Data Migration Template and run a sample import."
+          ],
+          "keyActions": [
+            "PM and Delivery Coordinator configure project templates and billing rate cards in a sandbox.",
+            "Infrastructure performs connector setup for prioritized integrations and runs first sync.",
+            "Perform 100-record sample migration using standard Data Migration Template and spot-check with client.",
+            "Document mapping decisions and open issues log."
+          ],
+          "deliverables": [
+            "Configured sandbox with project templates and NF-BI baseline dashboard",
+            "Integration setup report and initial sync results",
+            "Sample data migration report (100 records) and client sign-off on sample",
+            "Issue log with owners and SLAs"
+          ],
+          "riskCheckpoint": "If integration syncs fail or sample migration error rate exceeds acceptable threshold => escalate to Infrastructure and propose extended migration timeline."
+        },
+        {
+          "name": "Phase 3 — Training & Validation",
+          "days": "16-24",
+          "objectives": [
+            "Deliver required admin and PM training per NF-BI standards.",
+            "Validate billing rate cards with at least 3 test invoices.",
+            "Drive end-users to complete test time entries (target: at least 80% of identified pilot users)."
+          ],
+          "keyActions": [
+            "Deliver Admin training (4 hours) and PM training (3 hours) — schedule within this window.",
+            "Training Lead customizes materials with client project taxonomy.",
+            "Client to validate 3 test invoices and confirm billing rate cards.",
+            "Monitor end-user test time entries and follow up on non-completers."
+          ],
+          "deliverables": [
+            "Training session recordings and customized materials",
+            "Validated billing rate cards and 3 test invoices",
+            "Report showing percentage of pilot users who completed test time entry",
+            "Updated issue log"
+          ],
+          "riskCheckpoint": "If <80% of pilot users complete time entry by Day 24 => schedule extra retraining sessions and escalate risk of delayed go-live."
+        },
+        {
+          "name": "Phase 4 — Go-Live Prep & Acceptance",
+          "days": "25-30",
+          "objectives": [
+            "Finalize acceptance criteria and obtain DAD signature.",
+            "Perform final integration validation and readiness checks.",
+            "Confirm go-live date and hypercare plan."
+          ],
+          "keyActions": [
+            "Conduct acceptance review with client to validate Go-Live Criteria from NF-BI standards.",
+            "Resolve high-priority issues from issue log; escalate unresolved infra items to Infrastructure within 24 hours.",
+            "Confirm hypercare schedule: daily check-ins for first 5 business days, then weekly for 3 weeks."
+          ],
+          "deliverables": [
+            "Signed DAD and Go-Live signoff",
+            "Final integration validation report",
+            "Hypercare schedule and assigned contacts",
+            "Post-launch support plan and escalation paths"
+          ],
+          "riskCheckpoint": "If DAD not signed or critical integrations not validated by Day 30 => do not proceed to go-live; propose revised timeline and enter formal remediation plan."
+        }
+      ],
+      "criticalMilestones": [
+        "Day 2: Primary contact and sponsor confirmed",
+        "Day 5: DAD draft agreed and pipeline definitions locked",
+        "Day 15: Successful sample data migration validated (100 records) and initial integration syncs complete",
+        "Day 24: 80% pilot user time-entry completion and 3 validated test invoices",
+        "Day 30: Signed DAD and final acceptance / Go-Live signoff"
+      ],
+      "escalationTriggers": [
+        "Primary contact not provided within 48 hours",
+        "Integration sync failures unresolved >24 hours",
+        "Sample migration error rate above acceptable threshold (to be defined in scoping workshop)",
+        "Less than 80% pilot user time-entry completion by Day 24",
+        "DAD unsigned by Day 30"
+      ]
+    },
+    "flaggedRisks": [
+      "Primary contact and client admin not provided — prevents scheduling and sign-offs.",
+      "Unclear whether deal value ($78,000) is ARR or one-time — affects resourcing assumptions per internal policy.",
+      "Number of target users (for training and 80% time-entry target) not specified.",
+      "Exact integrations required for NF-BI (which of QuickBooks, Jira, Salesforce, HubSpot, Outlook, etc.) are not confirmed.",
+      "No SOW or statement of work details for custom reports, billing rate cards, or templates; scope must be confirmed.",
+      "Unclear if client requires premium support or API access (upsell triggers).",
+      "Close Date provided as epoch; confirm intended go-live target and contract timelines."
+    ]
+  }
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
